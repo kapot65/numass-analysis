@@ -19,27 +19,79 @@ async fn main() {
     let range = 2.0..20.0;
     let bins = 180;
 
-    // let pattern = format!("/{run}/Tritium_1/set_[4]/p*(HV1=16500)");
-    let ethalon_pattern = format!("/{run}/Tritium_1/set_[1234]/p*(HV1=12000)");
-    // let pattern = format!("/{run}/Tritium_1/set_[1234]/p*(HV1=16000)");
-    // let pattern = format!("/{run}/Tritium_1/set_[123][1234567890]/p19(30s)(HV1=14000)");
+    // 12 kev
+    // let ethalon_pattern = format!("/{run}/Tritium_1/set_[1234]/p*(HV1=12000)");
+    // let samples = [
+    //     ("trit-2-set-1", "/data-nvme/2023_03/Tritium_2/set_1/p118(30s)(HV1=12000)"),
+    //     ("trit-2-set-15", "/data-nvme/2023_03/Tritium_2/set_15/p118(30s)(HV1=12000)"),
+    //     ("trit-2-set-29", "/data-nvme/2023_03/Tritium_2/set_29/p118(30s)(HV1=12000)"),
+    //     ("trit-3-set-1", "/data-nvme/2023_03/Tritium_3/set_1/p118(30s)(HV1=12000)"),
+    //     ("trit-3-set-15", "/data-nvme/2023_03/Tritium_3/set_15/p118(30s)(HV1=12000)"),
+    //     ("trit-3-set-30", "/data-nvme/2023_03/Tritium_3/set_30/p118(30s)(HV1=12000)"),
+    //     ("trit-4-set-1", "/data-nvme/2023_03/Tritium_4/set_1/p118(30s)(HV1=12000)"),
+    //     ("trit-4-set-15", "/data-nvme/2023_03/Tritium_4/set_15/p118(30s)(HV1=12000)"),
+    //     ("trit-4-set-30", "/data-nvme/2023_03/Tritium_4/set_30/p118(30s)(HV1=12000)"),
+    //     ("trit-5-set-1", "/data-nvme/2023_03/Tritium_5/set_1/p118(30s)(HV1=12000)"),
+    //     ("trit-5-set-12", "/data-nvme/2023_03/Tritium_5/set_12/p118(30s)(HV1=12000)"),
+    // ];
+    // let range_l = 4.0..10.0;
+    // let range_r = 13.0..20.0;
 
+    // 13 kev
+    // let ethalon_pattern = format!("/{run}/Tritium_1/set_[1234]/p*(HV1=13000)");
+    // let samples = [
+    //     ("trit-2-set-1", "/data-nvme/2023_03/Tritium_2/set_1/p96(30s)(HV1=13000)"),
+    //     ("trit-2-set-15", "/data-nvme/2023_03/Tritium_2/set_15/p96(30s)(HV1=13000)"),
+    //     ("trit-2-set-29", "/data-nvme/2023_03/Tritium_2/set_29/p96(30s)(HV1=13000)"),
+    //     ("trit-3-set-1", "/data-nvme/2023_03/Tritium_3/set_1/p96(30s)(HV1=13000)"),
+    //     ("trit-3-set-15", "/data-nvme/2023_03/Tritium_3/set_15/p96(30s)(HV1=13000)"),
+    //     ("trit-3-set-30", "/data-nvme/2023_03/Tritium_3/set_30/p96(30s)(HV1=13000)"),
+    //     ("trit-4-set-1", "/data-nvme/2023_03/Tritium_4/set_1/p96(30s)(HV1=13000)"),
+    //     ("trit-4-set-15", "/data-nvme/2023_03/Tritium_4/set_15/p96(30s)(HV1=13000)"),
+    //     ("trit-4-set-30", "/data-nvme/2023_03/Tritium_4/set_30/p96(30s)(HV1=13000)"),
+    //     ("trit-5-set-1", "/data-nvme/2023_03/Tritium_5/set_1/p96(30s)(HV1=13000)"),
+    //     ("trit-5-set-12", "/data-nvme/2023_03/Tritium_5/set_12/p96(30s)(HV1=13000)"),
+    // ];
+    // let range_l = 4.0..11.0;
+    // let range_r = 14.0..20.0;
+
+
+    // 15 kev
+    let ethalon_pattern = format!("/{run}/Tritium_1/set_[1234]/p*(HV1=15000)");
     let samples = [
-        ("trit-2-set-1", "/data-nvme/2023_03/Tritium_2/set_1/p118(30s)(HV1=12000)"),
-        ("trit-2-set-15", "/data-nvme/2023_03/Tritium_2/set_15/p118(30s)(HV1=12000)"),
-        ("trit-2-set-29", "/data-nvme/2023_03/Tritium_2/set_29/p118(30s)(HV1=12000)"),
-        ("trit-3-set-1", "/data-nvme/2023_03/Tritium_3/set_1/p118(30s)(HV1=12000)"),
-        ("trit-3-set-15", "/data-nvme/2023_03/Tritium_3/set_15/p118(30s)(HV1=12000)"),
-        ("trit-3-set-30", "/data-nvme/2023_03/Tritium_3/set_30/p118(30s)(HV1=12000)"),
-        ("trit-4-set-1", "/data-nvme/2023_03/Tritium_4/set_1/p118(30s)(HV1=12000)"),
-        ("trit-4-set-15", "/data-nvme/2023_03/Tritium_4/set_15/p118(30s)(HV1=12000)"),
-        ("trit-4-set-30", "/data-nvme/2023_03/Tritium_4/set_30/p118(30s)(HV1=12000)"),
-        ("trit-5-set-1", "/data-nvme/2023_03/Tritium_4/set_1/p118(30s)(HV1=12000)"),
-        ("trit-5-set-12", "/data-nvme/2023_03/Tritium_4/set_12/p118(30s)(HV1=12000)"),
+        ("trit-2-set-1", "/data-nvme/2023_03/Tritium_2/set_1/p52(30s)(HV1=15000)"),
+        ("trit-2-set-15", "/data-nvme/2023_03/Tritium_2/set_15/p52(30s)(HV1=15000)"),
+        ("trit-2-set-29", "/data-nvme/2023_03/Tritium_2/set_29/p52(30s)(HV1=15000)"),
+        ("trit-3-set-1", "/data-nvme/2023_03/Tritium_3/set_1/p52(30s)(HV1=15000)"),
+        ("trit-3-set-15", "/data-nvme/2023_03/Tritium_3/set_15/p52(30s)(HV1=15000)"),
+        ("trit-3-set-30", "/data-nvme/2023_03/Tritium_3/set_30/p52(30s)(HV1=15000)"),
+        ("trit-4-set-1", "/data-nvme/2023_03/Tritium_4/set_1/p52(30s)(HV1=15000)"),
+        ("trit-4-set-15", "/data-nvme/2023_03/Tritium_4/set_15/p52(30s)(HV1=15000)"),
+        ("trit-4-set-30", "/data-nvme/2023_03/Tritium_4/set_30/p52(30s)(HV1=15000)"),
+        ("trit-5-set-1", "/data-nvme/2023_03/Tritium_5/set_1/p52(30s)(HV1=15000)"),
+        ("trit-5-set-12", "/data-nvme/2023_03/Tritium_5/set_12/p52(30s)(HV1=15000)"),
     ];
+    let range_l = 4.0..13.0;
+    let range_r = 16.0..20.0;
 
-    let range_l = 4.0..10.0;
-    let range_r = 13.0..20.0;
+
+    // 16 kev
+    // let ethalon_pattern = format!("/{run}/Tritium_1/set_[1234]/p*(HV1=16000)");
+    // let samples = [
+    //     ("trit-2-set-1", "/data-nvme/2023_03/Tritium_2/set_1/p30(30s)(HV1=16000)"),
+    //     ("trit-2-set-15", "/data-nvme/2023_03/Tritium_2/set_15/p30(30s)(HV1=16000)"),
+    //     ("trit-2-set-29", "/data-nvme/2023_03/Tritium_2/set_29/p30(30s)(HV1=16000)"),
+    //     ("trit-3-set-1", "/data-nvme/2023_03/Tritium_3/set_1/p30(30s)(HV1=16000)"),
+    //     ("trit-3-set-15", "/data-nvme/2023_03/Tritium_3/set_15/p30(30s)(HV1=16000)"),
+    //     ("trit-3-set-30", "/data-nvme/2023_03/Tritium_3/set_30/p30(30s)(HV1=16000)"),
+    //     ("trit-4-set-1", "/data-nvme/2023_03/Tritium_4/set_1/p30(30s)(HV1=16000)"),
+    //     ("trit-4-set-15", "/data-nvme/2023_03/Tritium_4/set_15/p30(30s)(HV1=16000)"),
+    //     ("trit-4-set-30", "/data-nvme/2023_03/Tritium_4/set_30/p30(30s)(HV1=16000)"),
+    //     ("trit-5-set-1", "/data-nvme/2023_03/Tritium_5/set_1/p30(30s)(HV1=16000)"),
+    //     ("trit-5-set-12", "/data-nvme/2023_03/Tritium_5/set_12/p30(30s)(HV1=16000)"),
+    // ];
+    // let range_l = 4.0..14.0;
+    // let range_r = 17.0..20.0;
 
     let eth_hist = {
         let eth_points = {
