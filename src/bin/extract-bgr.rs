@@ -1,33 +1,28 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, fmt::format};
 
-use analysis::{get_points_by_pattern, ethalon::get_ethalon};
+use analysis::{get_points_by_pattern, ethalon::get_ethalon, workspace::{get_db_fast_root, get_hist_range, get_hist_bins, get_workspace}, amps::get_amps};
 use plotly::{common::{Title, Line, LineShape}, layout::Axis, Layout, Plot, Scatter};
-use protobuf::Message;
 
-use dataforge::read_df_message;
 use processing::{
-    histogram::HistogramParams, numass::{protos::rsb_event, NumassMeta}, extract_amplitudes, ProcessParams, amplitudes_to_histogram
+    histogram::HistogramParams, ProcessParams, amplitudes_to_histogram, PostProcessParams, post_process
 };
 
 #[tokio::main]
 async fn main() {
     
     // ===== configuration =====
-    let db_root = "/data-nvme";
+    let db_root = get_db_fast_root().to_str().unwrap().to_owned();
     let run = "2023_03";
-
-    let range = 2.0..20.0;
-    let bins = 180;
 
     let voltage = 12000u16;
     let y_range = [-1000, 4000];
 
     // ===== processing code =====
-    let out_folder = PathBuf::from(format!("workspace/extract-bgr/{voltage}"));
+    let out_folder = get_workspace().join(format!("extract-bgr/{voltage}"));
     std::fs::create_dir_all(&out_folder).unwrap();
 
     let mut paths = get_points_by_pattern(
-        db_root, format!("/{run}/Tritium_[45]/set_*/p*(HV1={voltage})").as_str(), &[]).into_values().flatten().collect::<Vec<_>>();
+        &db_root, format!("/{run}/Tritium_[45]/set_*/p*(HV1={voltage})").as_str(), &[]).into_values().flatten().collect::<Vec<_>>();
     paths.sort_by(|a, b|
         natord::compare(a.to_str().unwrap(), b.to_str().unwrap())
     );
@@ -38,16 +33,20 @@ async fn main() {
     ).collect::<Vec<_>>();
 
     let range_l = 4.0..(voltage as f32 / 1000.0 - 2.0);
-    let range_r = (voltage as f32 / 1000.0 + 1.0)..20.0;
+    let range_r = (voltage as f32 / 1000.0 + 1.0)..30.0;
     
-    let eth_hist = get_ethalon(voltage).await.unwrap();
+    let eth_hist = get_ethalon(
+        format!("/{run}/Tritium_1/set_[1234]/p*(HV1={voltage})"),
+        ProcessParams::default(),
+        PostProcessParams::default()
+    ).await.unwrap();
 
     let handles = samples.iter().map(|(outfile, sample)| {
 
         let outfile = outfile.clone();
         let sample = sample.clone();
         let eth_hist = eth_hist.clone();
-        let range = range.clone();
+
         let range_l = range_l.clone();
         let range_r = range_r.clone();
         let y_range = y_range;
@@ -55,28 +54,27 @@ async fn main() {
 
         tokio::spawn(async move {
             let sample_hist = {
-                let mut point_file = tokio::fs::File::open(&sample).await.unwrap();
-                let message = read_df_message::<NumassMeta>(&mut point_file)
-                    .await
-                    .unwrap();
-                let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-                
-                amplitudes_to_histogram(extract_amplitudes(
-                    &point, 
-                    &ProcessParams::default()
-                ), HistogramParams {
-                    range: range.clone(),
-                    bins
+
+                let amplitudes = get_amps(
+                    &sample, ProcessParams::default()).await.unwrap();
+
+                let processed = post_process(
+                    amplitudes, &PostProcessParams::default());
+
+                amplitudes_to_histogram(processed, HistogramParams {
+                    range: get_hist_range(),
+                    bins: get_hist_bins()
                 })
             };
         
-            let eth_counts = eth_hist.events_all(Some(range_l.clone())) 
-            + eth_hist.events_all(Some(range_r.clone()))
-            ;
-            let sample_counts = sample_hist.events_all(Some(range_l.clone()))
-             + sample_hist.events_all(Some(range_r.clone()))
-            ;
-            let ratio = sample_counts as f64 / eth_counts as f64;
+            let ratio = {
+                let eth_counts = eth_hist.events_all(Some(range_l.clone())) 
+                + eth_hist.events_all(Some(range_r.clone()));
+                let sample_counts = sample_hist.events_all(Some(range_l.clone()))
+                + sample_hist.events_all(Some(range_r.clone()));
+
+                sample_counts as f64 / eth_counts as f64
+            };
         
             let mut plot = Plot::new();
         

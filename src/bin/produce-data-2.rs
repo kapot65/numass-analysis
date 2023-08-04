@@ -91,12 +91,12 @@ async fn main() {
     // let group = "tritium-1-bgr-1(5-7)";
 
     // === Tritium 1, Bgr 2 ===
-    // let pattern = format!("/{run}/Tritium_1/set_[123][0123456789]/p*");
-    // let exclude = [
-    //     "Tritium_1/set_10".to_owned()
-    // ];
-    // let correct_to_monitor = true;
-    // let group = "tritium-1-bgr-2";
+    let pattern = format!("/{run}/Tritium_1/set_[12]/p*");
+    let exclude = [
+        "Tritium_1/set_10".to_owned()
+    ];
+    let correct_to_monitor = true;
+    let group = "tritium-1-bgr-2(1,2)";
 
     // === Tritium 2 ===
     // let pattern = format!("/{run}/Tritium_2/set_*/p*");
@@ -168,28 +168,28 @@ async fn main() {
     // let group = "tritium-4";
 
     // === Tritium 5 ===
-    let pattern = format!("/{run}/Tritium_5/set_*/p*");
-    let exclude: Vec<String> = vec![
-        "Tritium_5/set_1/".to_owned(),
-        "Tritium_5/set_2/".to_owned(),
-        "Tritium_5/set_3/".to_owned(),
-        "Tritium_5/set_4/".to_owned(),
+    // let pattern = format!("/{run}/Tritium_5/set_*/p*");
+    // let exclude: Vec<String> = vec![
+    //     "Tritium_5/set_1/".to_owned(),
+    //     "Tritium_5/set_2/".to_owned(),
+    //     "Tritium_5/set_3/".to_owned(),
+    //     "Tritium_5/set_4/".to_owned(),
 
-        "Tritium_5/set_5/".to_owned(),
-        "Tritium_5/set_6/".to_owned(),
-        "Tritium_5/set_7/".to_owned(),
-        "Tritium_5/set_8/".to_owned(),
+    //     "Tritium_5/set_5/".to_owned(),
+    //     "Tritium_5/set_6/".to_owned(),
+    //     "Tritium_5/set_7/".to_owned(),
+    //     "Tritium_5/set_8/".to_owned(),
 
-        // "Tritium_5/set_9/".to_owned(),
-        // "Tritium_5/set_10/".to_owned(),
-        // "Tritium_5/set_11/".to_owned(),
-        // "Tritium_5/set_12/".to_owned(),
+    //     // "Tritium_5/set_9/".to_owned(),
+    //     // "Tritium_5/set_10/".to_owned(),
+    //     // "Tritium_5/set_11/".to_owned(),
+    //     // "Tritium_5/set_12/".to_owned(),
 
-        "Tritium_5/set_10".to_owned()
-    ];
+    //     "Tritium_5/set_10".to_owned()
+    // ];
 
-    let correct_to_monitor = true;
-    let group = "tritium-5(9,11,12)";
+    // let correct_to_monitor = true;
+    // let group = "tritium-5(9,11,12)";
 
     // === End ===
     std::fs::create_dir_all(&workspace).unwrap();

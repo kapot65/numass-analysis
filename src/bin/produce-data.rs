@@ -82,18 +82,18 @@ async fn main() {
 
     // === Tritium 1, Bgr 1 ===
     // let pattern = format!("/{run}/Tritium_1/set_[1234567]/p*");
-    let pattern = format!("/{run}/Tritium_1/set_[567]/p*");
-    let exclude = [];
-    let correct_to_monitor = true;
-    let group = "tritium-1-bgr-1(5-7)";
+    // let pattern = format!("/{run}/Tritium_1/set_[567]/p*");
+    // let exclude = [];
+    // let correct_to_monitor = true;
+    // let group = "tritium-1-bgr-1(5-7)";
 
     // === Tritium 1, Bgr 2 ===
-    // let pattern = format!("/{run}/Tritium_1/set_[123][0123456789]/p*");
-    // let exclude = [
-    //     "Tritium_1/set_10".to_owned()
-    // ];
-    // let correct_to_monitor = true;
-    // let group = "tritium-1-bgr-2";
+    let pattern = format!("/{run}/Tritium_1/set_[34]/p*");
+    let exclude = [
+        "Tritium_1/set_10".to_owned()
+    ];
+    let correct_to_monitor = true;
+    let group = "tritium-1-bgr-2(3,4)";
 
     // === Tritium 2 ===
     // let pattern = format!("/{run}/Tritium_2/set_*/p*");

@@ -40,7 +40,7 @@ impl<K, V> IOCachedAsync<K, V> for CacacheBackend<K, V> where
             Err(err) => {
                 Err(err.into())
             }
-        } 
+        }
     }
     
     async fn cache_set(&self, key: K, val: V) -> Result<Option<V>, Self::Error> {
