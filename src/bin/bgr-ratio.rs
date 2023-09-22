@@ -6,7 +6,7 @@ use protobuf::Message;
 
 use dataforge::read_df_message;
 use processing::{
-    histogram::HistogramParams, numass::{protos::rsb_event, NumassMeta, Reply}, extract_amplitudes, ProcessParams, amplitudes_to_histogram, PostProcessParams, post_process
+    histogram::HistogramParams, numass::{protos::rsb_event, NumassMeta, Reply, ExternalMeta}, extract_amplitudes, ProcessParams, amplitudes_to_histogram, PostProcessParams, post_process
 };
 
 #[tokio::main]
@@ -42,8 +42,9 @@ async fn main() {
                 .await
                 .unwrap();
 
-            let voltage = if let NumassMeta::Reply(Reply::AcquirePoint { external_meta: Some(external_meta), .. }) = message.meta {
-                let voltage = external_meta.get("HV1_value").unwrap().to_string().replace('\"', "").parse::<u16>().unwrap();
+            let voltage = if let NumassMeta::Reply(Reply::AcquirePoint { external_meta: Some(ExternalMeta {
+                hv1_value: Some(voltage), ..
+            }), .. }) = message.meta {
                 voltage
             } else {
                 panic!("wrong message type")
