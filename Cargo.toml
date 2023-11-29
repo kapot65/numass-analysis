@@ -30,6 +30,8 @@ cacache = { version = "11.6.0", default-features=false, features = ["tokio-runti
 bincode = "1.3.3"
 eyre = "0.6.8"
 itertools = "0.11.0"
+clap = { version = "4.4.8", features = ["derive"] }
+serde_yaml = "0.9.27"
 
 [patch."https://bitbucket.org/Kapot/dataforge-parser-rust.git"]
 dataforge = { path = "../dataforge-parser-rust" }
