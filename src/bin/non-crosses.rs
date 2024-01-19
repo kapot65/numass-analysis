@@ -1,12 +1,11 @@
-use std::collections::BTreeMap;
-
-use protobuf::Message;
+use std::{collections::BTreeMap, path::PathBuf};
 
 use processing::{
-    histogram::PointHistogram,  numass::{protos::rsb_event, NumassMeta},
-    convert_to_kev, waveform_to_events, process_waveform, Algorithm
+    histogram::PointHistogram, 
+    process::{convert_to_kev, process_waveform, waveform_to_events, Algorithm}, 
+    storage::load_point, 
+    utils::check_neigbors_fast
 };
-use dataforge::read_df_message;
 
 #[tokio::main]
 async fn main() {
@@ -77,17 +76,12 @@ async fn main() {
         let handles = files
             .iter()
             .map(|filepath| {
-                let filepath = filepath.to_owned();
+                let filepath = PathBuf::from(filepath);
                 tokio::spawn(async move {
                     let mut crosses = BTreeMap::new();
 
-                    let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-                    let message = read_df_message::<NumassMeta>(&mut point_file)
-                        .await
-                        .unwrap();
-
-                    let point =
-                        rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
+                    let point = load_point(&filepath).await;
+                    
                     for channel in &point.channels {
                         for block in &channel.blocks {
                             for frame in &block.frames {
@@ -120,7 +114,7 @@ async fn main() {
         .iter()
         .filter(|(_, waveforms)| waveforms.len() == 2)
         .filter(|(_, waveforms)| {
-            processing::check_neigbors_fast(waveforms)
+            check_neigbors_fast(waveforms)
         });
 
 

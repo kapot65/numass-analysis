@@ -5,7 +5,7 @@ use super::cache::CacacheBackend;
 use tokio::sync::Mutex;
 use cached::proc_macro::io_cached;
 use eyre::Result;
-use processing::{histogram::PointHistogram, ProcessParams, PostProcessParams, post_process};
+use processing::{histogram::PointHistogram, process::ProcessParams, postprocess::{PostProcessParams, post_process}};
 
 
 /// Calculate ethalon histogram for given pattern or get it from cache
@@ -48,8 +48,7 @@ pub async fn get_ethalon(
             filepaths.iter().map(|filepath| {
                 let hist = Arc::clone(&hist);
                 let filepath = filepath.clone();
-                let process_params = process_params;
-                let post_process_params = post_process_params;
+                let process_params = process_params.clone();
 
                 tokio::spawn(async move {
                     let amps = post_process(

@@ -1,13 +1,16 @@
-use processing::{ProcessedWaveform, color_for_index, EguiLine};
+use std::{collections::BTreeMap, path::PathBuf};
+
+use processing::{
+    process::process_waveform, 
+    storage::load_point, 
+    types::ProcessedWaveform, 
+    utils::{color_for_index, EguiLine}
+};
 
 
 #[tokio::main]
 async fn main() {
-    use protobuf::Message;
-    use std::collections::BTreeMap;
-
-    use dataforge::read_df_message;
-    use processing::{process_waveform, numass::{protos::rsb_event, NumassMeta}};
+    
 
     // let files = [
     //     "/data/numass-server/2022_12/Tritium_7/set_1/p52(30s)(HV1=15000)",
@@ -79,17 +82,12 @@ async fn main() {
             .map(|filepath| {
                 let mut counts = [0; 7];
 
-                let filepath = filepath.to_owned();
+                let filepath = PathBuf::from(filepath);
                 tokio::spawn(async move {
                     let mut crosses = BTreeMap::new();
 
-                    let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-                    let message = read_df_message::<NumassMeta>(&mut point_file)
-                        .await
-                        .unwrap();
-
-                    let point =
-                        rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
+                    let point = load_point(&filepath).await;
+                    
                     for channel in &point.channels {
                         for block in &channel.blocks {
                             for frame in &block.frames {

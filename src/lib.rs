@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::{PathBuf, Path}};
 
-use processing::numass::protos::rsb_event::Point;
+use processing::numass::{NumassMeta, Reply};
 use serde::Deserialize;
 
 pub mod cache;
@@ -41,6 +41,7 @@ struct SetParams {
 pub struct Coeffs {
     pub a: f32,
     pub b: f32,
+    // pub c: f32,
 }
 
 pub struct CorrectionCoeffs {
@@ -62,7 +63,7 @@ impl CorrectionCoeffs {
         self.coeffs.get(fill)?.get(set).map(|params| &params.corr_coef)
     }
 
-    pub fn get_for_point(&self, filepath: &Path, point: &Point) -> f32{
+    pub fn get_from_meta(&self, filepath: &Path, meta: &NumassMeta) -> f32 {
 
         let (fill, set) = {
             let set_folder = filepath.parent().unwrap();
@@ -74,9 +75,25 @@ impl CorrectionCoeffs {
 
         let Coeffs {a, b} = self.get(fill, set).unwrap();
 
-        let secs = point.channels.first().unwrap().blocks.first().unwrap().time / 
-                1_000_000_000 + (3600 * 4);
+        if let NumassMeta::Reply(Reply::AcquirePoint { start_time, ..
+        }) = meta {
+            let secs = start_time.timestamp() + (3600 * 5);
+            let x = (secs % 1_000_000) as f32;
+            1.0 / (a * x + b)
+        } else {
+            panic!("wrong message type")
+        }
 
-        1.0 / (a * (secs % 1_000_000) as f32 + b)
+
+        // let Coeffs {a, b, c} = self.get(fill, set).unwrap();
+
+        // if let NumassMeta::Reply(Reply::AcquirePoint { start_time, ..
+        // }) = meta {
+        //     let secs = start_time.timestamp() - (3600 * 3);
+        //     let x= (secs % 1_000_000) as f32;
+        //     1.0 / (a * x.powf(2.0) + b * x + c)
+        // } else {
+        //     panic!("wrong message type")
+        // }
     }
 }

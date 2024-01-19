@@ -4,11 +4,13 @@
 use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
 use analysis::{get_points_by_pattern, workspace::get_db_fast_root};
-use dataforge::read_df_message;
 use indicatif::ProgressStyle;
 use plotly::{Plot, Scatter, common::{Mode, Title}, Layout, layout::Axis};
-use processing::{numass::{NumassMeta, protos::rsb_event}, extract_events, ProcessParams, PostProcessParams, post_process};
-use protobuf::Message;
+use processing::{
+    postprocess::{post_process, PostProcessParams}, 
+    process::ProcessParams, 
+    storage::process_point
+};
 use tokio::sync::Mutex;
 
 
@@ -19,6 +21,7 @@ async fn calc_count_rates(groups: BTreeMap<u16, Vec<PathBuf>>, process_params: P
     let handles = groups.into_iter().map(|(u, points)| {
 
         let count_rates = Arc::clone(&count_rates);
+        let process_params = process_params.clone();
 
         tokio::spawn(async move {
 
@@ -27,18 +30,12 @@ async fn calc_count_rates(groups: BTreeMap<u16, Vec<PathBuf>>, process_params: P
 
             for filepath in points {
 
-                let mut point_file = tokio::fs::File::open(&filepath).await.unwrap();
-                let message = read_df_message::<NumassMeta>(&mut point_file)
-                    .await
-                    .unwrap();
-                let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-
                 // processing
-                let amps = extract_events(&point, &process_params);
+                let events = process_point(&filepath, &process_params).await.unwrap().1.unwrap();
                 // post processing
-                let amps = post_process(amps, &post_process_params);
+                let events = post_process(events, &post_process_params);
 
-                for (_, amps) in amps {
+                for (_, amps) in events {
                     for (ch, (_, amp)) in amps {
                         if (2.0..20.0).contains(&amp) {
                             counts[ch] += 1.0;
@@ -101,11 +98,12 @@ async fn main() {
     .unwrap());
     let pb = Arc::new(Mutex::new(pb));
 
-    let eth_cr = calc_count_rates(ethalon, process_params, post_process_params);
+    let eth_cr = calc_count_rates(ethalon, process_params.clone(), post_process_params);
 
     let handles = samples.into_iter().map(|(label, sample)| {
         let label = label.to_owned();
         let pb = Arc::clone(&pb);
+        let process_params = process_params.clone();
         tokio::spawn(async move {
             let sample_cr = calc_count_rates(sample, process_params, post_process_params).await;
             pb.lock().await.inc(1);

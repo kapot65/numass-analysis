@@ -1,12 +1,11 @@
 use analysis::{get_points_by_pattern, workspace::{get_workspace, get_db_fast_root}};
-use processing::{extract_events, numass::NumassMeta, ProcessParams};
 
 use {
     processing::{
         histogram::PointHistogram,
-        numass::protos::rsb_event
+        process::ProcessParams,
+        storage::process_point,
     },
-    protobuf::Message,
     std::sync::Arc,
     tokio::sync::Mutex,
 };
@@ -55,23 +54,18 @@ async fn main() {
         let handles = points.iter().map(|filepath| {
             let filepath = filepath.to_owned();
             let histogram = Arc::clone(&histogram);
+            let processing_params = processing_params.clone();
             let pb = Arc::clone(&pb);
-            let processing_params = processing_params;
 
             tokio::spawn(async move {
                 // load point manually because it must not be used from cache
                 // TODO: add cache expiration based on calibration parameters change
-                let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-                let message = dataforge::read_df_message::<NumassMeta>(&mut point_file)
-                    .await
-                    .unwrap();
-
-                let point =rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-                let amps = extract_events(&point, &processing_params);
+                let (_, events) = process_point(&filepath, &processing_params).await.unwrap();
+                let events = events.unwrap();
                 {
                     let mut histogram = histogram.lock().await;
-                    for (_, amps) in amps {
-                        for (ch_id, (_, amp)) in amps {
+                    for (_, events) in events {
+                        for (ch_id, (_, amp)) in events {
                             histogram.add(ch_id as u8, amp);
                         }
                     }

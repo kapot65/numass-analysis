@@ -1,17 +1,15 @@
-use std::{path::PathBuf, collections::hash_map::DefaultHasher, hash::{Hash, Hasher}};
+use std::{collections::hash_map::DefaultHasher, hash::{Hash, Hasher}, path::PathBuf};
 use crate::workspace::get_cache_root;
 
 use super::cache::CacacheBackend;
-use dataforge::read_df_message;
-use protobuf::Message;
 use cached::proc_macro::io_cached;
-use eyre::Result;
-use processing::{numass::{NumassMeta, protos::rsb_event}, NumassAmps, extract_events, ProcessParams};
+use eyre::{Result, eyre};
+use processing::{types::NumassEvents, process::ProcessParams};
 
 /// do extract_amplitudes for given point or get it from cache
 #[io_cached(
     map_error = r##"|e| e"##,
-    type = "CacacheBackend<u64, NumassAmps>",
+    type = "CacacheBackend<u64, NumassEvents>",
     create = r#"{ CacacheBackend::new(get_cache_root().join("extract_events")) }"#, // TODO: make it configurable
     convert = r#"{ {
         let mut hasher = DefaultHasher::new();
@@ -20,7 +18,7 @@ use processing::{numass::{NumassMeta, protos::rsb_event}, NumassAmps, extract_ev
         hasher.finish()
     } }"#
 )]
-pub async fn get_amps(filepath: &PathBuf, params: &ProcessParams) -> Result<NumassAmps> {
+pub async fn get_amps(filepath: &PathBuf, params: &ProcessParams) -> Result<NumassEvents> {
 
     // TODO: implement relative files + fast/slow db selection
     // let filepath = {
@@ -33,16 +31,7 @@ pub async fn get_amps(filepath: &PathBuf, params: &ProcessParams) -> Result<Numa
     //     }
     // };
 
-    let mut point_file = tokio::fs::File::open(filepath).await?;
-    let message = read_df_message::<NumassMeta>(&mut point_file)
-        .await
-        .unwrap();
-    let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-
-    let amps = extract_events(
-        &point, 
-        params
-    );
-
-    Ok(amps)
+    let events = processing::storage::process_point(filepath, params).await;
+    events.ok_or(eyre!("{filepath:?}, process_point returns None"))?.1
+        .ok_or(eyre!("{filepath:?} binary data is empty"))
 }

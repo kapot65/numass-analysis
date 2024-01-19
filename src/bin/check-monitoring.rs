@@ -4,7 +4,7 @@ use analysis::{get_points_by_pattern, CorrectionCoeffs, amps::get_amps};
 use chrono::NaiveDateTime;
 use dataforge::read_df_header_and_meta_sync;
 use plotly::{Plot, Layout, common::{Title, Mode}, layout::Axis, Scatter};
-use processing::{numass::{NumassMeta,  Reply}, post_process, PostProcessParams, ProcessParams};
+use processing::{numass::{NumassMeta,  Reply}, postprocess::{post_process, PostProcessParams}, process::ProcessParams};
 use tokio::sync::Mutex;
 
 use unzip_n::unzip_n;
@@ -17,13 +17,13 @@ async fn main() {
 
     let db_root = "/data-nvme";
     // let db_root = "/data/numass-server";
-    let run = "2023_03";
+    let run = "2023_11";
     // let pattern = format!("/{run}/Tritium_2/set_*/p*(30s)(HV1=14000)");
-    let pattern = format!("/{run}/Tritium_1/set_2/p*(30s)(HV1=14000)");
+    let pattern = format!("/{run}/Tritium_14-18.6_[345]/set_*/p*(30s)(HV1=16000)");
     let exclude = [];
 
     let points = get_points_by_pattern(db_root, &pattern, &exclude).first_key_value().unwrap().1.clone();
-    let coeffs = Arc::new(CorrectionCoeffs::load(&format!("/{db_root}/monitor.json")));
+    let coeffs = Arc::new(CorrectionCoeffs::load(&format!("/{db_root}/monitor-2023-11.json")));
     let count_rates =  Arc::new(Mutex::new(BTreeMap::<NaiveDateTime, (usize, f32, String)>::new()));
 
     let pb: Arc<Mutex<indicatif::ProgressBar>> = Arc::new(Mutex::new(indicatif::ProgressBar::new(points.len() as u64)));

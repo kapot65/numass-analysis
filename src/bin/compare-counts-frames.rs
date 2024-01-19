@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use analysis::amps::get_amps;
-use processing::{post_process, PostProcessParams, ProcessParams};
+use processing::{postprocess::{post_process, PostProcessParams}, process::ProcessParams};
 
 #[tokio::main]
 async fn main() {

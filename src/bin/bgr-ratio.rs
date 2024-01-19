@@ -7,9 +7,8 @@ use analysis::{
 };
 use plotly::{common::{Title, Line, LineShape}, layout::Axis, Layout, Plot, Scatter};
 
-use dataforge::read_df_header_and_meta_sync;
 use processing::{
-    histogram::HistogramParams, numass::{NumassMeta, Reply, ExternalMeta}, ProcessParams, events_to_histogram, PostProcessParams, post_process
+    histogram::HistogramParams, numass::{NumassMeta, Reply, ExternalMeta}, postprocess::{post_process, PostProcessParams}, process::ProcessParams, storage::load_meta, utils::events_to_histogram
 };
 
 #[tokio::main]
@@ -35,13 +34,11 @@ async fn main() {
 
     let handles = points.into_iter().map(|filepath| {
 
-        let y_range = y_range;
         let out_folder = out_folder.clone();
         let coeffs = Arc::clone(&coeffs);
 
         tokio::spawn(async move {
-            let (_, meta) = read_df_header_and_meta_sync::<NumassMeta>(&mut std::fs::File::open(&filepath).unwrap()).unwrap();
-
+            let meta = load_meta(&filepath).await.unwrap();
             let voltage = if let NumassMeta::Reply(Reply::AcquirePoint { external_meta: Some(ExternalMeta {
                 hv1_value: Some(voltage), ..
             }), .. }) = meta {

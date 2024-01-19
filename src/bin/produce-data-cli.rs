@@ -1,12 +1,16 @@
 use std::{path::PathBuf, collections::BTreeMap, vec, sync::Arc};
 
 use clap::Parser;
-use dataforge::read_df_message;
 use indicatif::ProgressStyle;
-use processing::{numass::{NumassMeta, protos::rsb_event}, PostProcessParams, post_process, extract_events, ProcessParams};
-use protobuf::Message;
 use serde::{Serialize, Deserialize};
 use tokio::sync::Mutex;
+
+use analysis::CorrectionCoeffs;
+use processing::{
+    postprocess::{post_process, PostProcessParams}, 
+    process::ProcessParams, 
+    storage::{load_meta, process_point}
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct ProducedPoint {
@@ -38,6 +42,7 @@ struct Opts {
     l_coeff: f32,
     processing: ProcessParams,
     post_processing: PostProcessParams,
+    monitor: Option<PathBuf>
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -101,7 +106,12 @@ async fn main() {
     });
 
     // let hist_params: HistogramParams = HistogramParams { range: opts.e_min..opts.e_max, bins: 360 };
-    // let coeffs = Arc::new(CorrectionCoeffs::load(&format!("/{db_root}/monitor.json")));
+    
+    let coeffs = Arc::new(
+        opts.monitor.map(|filepath| {
+            CorrectionCoeffs::load(filepath.to_str().unwrap())
+        })
+    );
 
     let pb = indicatif::ProgressBar::new(points.len() as u64);
     pb.set_style(ProgressStyle::with_template("[{elapsed_precise}] {bar} {pos:>7}/{len:7} {msg}")
@@ -116,7 +126,7 @@ async fn main() {
         let points = points.clone();
         let table = Arc::clone(&table);
         let pb: Arc<Mutex<indicatif::ProgressBar>> = Arc::clone(&pb);
-        // let coeffs = Arc::clone(&coeffs);
+        let coeffs = Arc::clone(&coeffs);
 
         // let hist_params = hist_params.clone();
         let e_min = opts.e_min;
@@ -124,7 +134,7 @@ async fn main() {
         let e_peak = opts.e_peak;
         let l_coeff = opts.l_coeff;
 
-        let processing = opts.processing;
+        let processing = opts.processing.clone();
         let post_processing = opts.post_processing;
 
         tokio::spawn(async move {
@@ -146,19 +156,14 @@ async fn main() {
 
             for filepath in points {
 
-                let mut point_file = tokio::fs::File::open(&filepath).await.unwrap();
-                let message = read_df_message::<NumassMeta>(&mut point_file)
-                    .await
-                    .unwrap();
-                let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-                let monitor_coeff = 
-                // if correct_to_monitor {
-                //     coeffs.get_from_meta(&filepath, &message.meta) as f64
-                // } else 
-                { 1.0 };
+                let meta = load_meta(&filepath).await.unwrap();
+                let monitor_coeff = if let Some(coeffs) = coeffs.as_ref() {
+                    coeffs.get_from_meta(&filepath, &meta) as f64
+                } else { 1.0 };
 
                 let amps = post_process(
-                    extract_events(&point, &processing) , &post_processing);
+                    process_point(&filepath, &processing).await.unwrap().1.unwrap(),
+                    &post_processing);
                 
                 amps.iter().for_each(|(_, frames): (&u64, &std::collections::BTreeMap<usize, (u16, f32)>)| {
                     frames.iter().for_each(|(ch_num, (_, amp))| {

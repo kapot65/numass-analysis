@@ -2,7 +2,10 @@ use analysis::{get_points_by_pattern, ethalon::get_ethalon, workspace::{get_db_f
 use plotly::{common::{Title, Line, LineShape}, layout::Axis, Layout, Plot, Scatter};
 
 use processing::{
-    histogram::HistogramParams, ProcessParams, events_to_histogram, PostProcessParams, post_process
+    histogram::HistogramParams,
+    utils::events_to_histogram,
+    process::ProcessParams, 
+    postprocess::{PostProcessParams, post_process}
 };
 
 #[tokio::main]
@@ -47,7 +50,6 @@ async fn main() {
 
         let range_l = range_l.clone();
         let range_r = range_r.clone();
-        let y_range = y_range;
         let out_folder = out_folder.clone();
 
         tokio::spawn(async move {

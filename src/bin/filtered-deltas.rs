@@ -1,28 +1,25 @@
 use std::{collections::BTreeMap, sync::Arc};
 
-use analysis::get_points_by_pattern;
-use plotly::{common::Title, layout::Axis, Layout, Plot};
-use processing::{
-    process_waveform, ProcessedWaveform,
-    convert_to_kev, waveform_to_events, numass::{protos::rsb_event, NumassMeta},
-    histogram::PointHistogram
-};
-use protobuf::Message;
-
-use dataforge::read_df_message;
 use tokio::sync::Mutex;
+use plotly::{common::Title, layout::Axis, Layout, Plot};
 
-pub const DB_ROOT: &str = "/home/chernov/data";
+use analysis::{get_points_by_pattern, workspace::get_db_fast_root};
+use processing::{
+    histogram::PointHistogram, 
+    process::{Algorithm, convert_to_kev, process_waveform, waveform_to_events}, 
+    storage::load_point,
+    types::ProcessedWaveform
+};
 
 #[tokio::main]
 async fn main() {
     
-    let db_root = "/home/chernov/data";
+    let db_root = get_db_fast_root();
     let run = "2023_03";
     let pattern = format!("/{run}/Tritium_5/set_*/p*(30s)(HV1=12000)");
     let exclude = [];
 
-    let points = get_points_by_pattern(db_root, &pattern, &exclude).first_key_value().unwrap().1.clone();
+    let points = get_points_by_pattern(db_root.to_str().unwrap(), &pattern, &exclude).first_key_value().unwrap().1.clone();
 
     let range = 0.0..6.5;
     // let range = 6.5..27.0;
@@ -39,14 +36,10 @@ async fn main() {
         let range = range.clone();
 
         tokio::spawn(async move {
-            let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-            let message = read_df_message::<NumassMeta>(&mut point_file)
-                .await
-                .unwrap();
+            let point = load_point(&filepath).await;
 
             let mut independent: BTreeMap<u64, BTreeMap<u8, ProcessedWaveform>> = BTreeMap::new();
 
-            let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
             for channel in &point.channels {
                 for block in &channel.blocks {
                     for frame in &block.frames {
@@ -56,7 +49,7 @@ async fn main() {
                 }
             }
 
-            let algorithm = processing::Algorithm::default();
+            let algorithm = Algorithm::default();
 
             let deltas = independent
                 .iter()

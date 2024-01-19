@@ -1,31 +1,23 @@
-use dataforge::read_df_message;
-use processing::{numass::{protos::rsb_event, NumassMeta}, extract_events};
-use protobuf::Message;
+use std::path::PathBuf;
+
+use processing::{process::ProcessParams, storage::process_point};
 
 #[tokio::main]
 async fn main() {
     
-    let filepath = "/data-nvme/2023_03/Tritium_2/set_1/p118(30s)(HV1=12000)";
+    let filepath = PathBuf::from("/data-nvme/2023_03/Tritium_2/set_1/p118(30s)(HV1=12000)");
     // let filepath = "/data-nvme/2023_03/Tritium_2/set_1/p52(30s)(HV1=15000)";
                                           
-    let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-    let message = read_df_message::<NumassMeta>(&mut point_file)
-        .await
-        .unwrap();
+    let events = process_point(&filepath, &ProcessParams::default()).await.unwrap().1.unwrap();
 
-    let params = processing::ProcessParams::default();
-    let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-
-    let amplitudes = extract_events(&point, &params);
-
-    let amplitudes =  amplitudes.into_keys().collect::<Vec<_>>();
+    let events =  events.into_keys().collect::<Vec<_>>();
 
     let mut total_deadtime = 0;
     let mut close_count = 0;
     let mut normal_count = 0;
     let mut triple_close_count = 0;
 
-    amplitudes.windows(3).for_each(|pair| {
+    events.windows(3).for_each(|pair| {
 
         let time_delta = pair[2] - pair[1];
         let time_delta_prev = pair[1] - pair[0];

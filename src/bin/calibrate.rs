@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc, path::PathBuf};
 
 use analysis::amps::get_amps;
-use processing::{ProcessParams, events_to_histogram, histogram::HistogramParams, Algorithm};
+use processing::{histogram::HistogramParams, process::{Algorithm, ProcessParams}, utils::events_to_histogram};
 use tokio::sync::Mutex;
 
 #[tokio::main]
@@ -89,6 +89,7 @@ async fn main() {
                 let kev = kev.to_owned();
                 let filepath = filepath.to_owned();
                 let calibration_data = Arc::clone(&calibration_data);
+                let algorithm = algorithm.clone();
                 tokio::spawn(async move {
                     let histogram  = events_to_histogram(get_amps(
                         &PathBuf::from(filepath), 

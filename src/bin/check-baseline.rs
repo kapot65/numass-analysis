@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::{Arc, Mutex}, collections::BTreeMap};
 
 use dataforge::DFMessage;
 use plotly::{Scatter, common::{ErrorData, ErrorType}, Plot};
-use processing::{numass::{self, protos::rsb_event::Point}, RawWaveform};
+use processing::{numass::{self, protos::rsb_event::Point}, types::RawWaveform};
 use protobuf::Message;
 
 use statrs::statistics::Statistics;

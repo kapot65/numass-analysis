@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
+use analysis::workspace::get_db_fast_root;
 use plotly::{common::Title, layout::Axis, Layout, Plot};
-use protobuf::Message;
 
-use dataforge::read_df_message;
 use processing::{
-    process_waveform, histogram::PointHistogram, numass::{protos::rsb_event, NumassMeta}
+    histogram::PointHistogram, process::{find_first_peak, process_waveform}, storage::load_point
 };
 use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
     
-    let db_root = "/data-nvme";
+    let db_root = get_db_fast_root();
     let run = "2023_03";
 
     // let filepath = "/data/numass-server/2023_03/Tritium_1/set_1/p118(30s)(HV1=12000)";
@@ -26,7 +25,7 @@ async fn main() {
         "Tritium_2/set_29/p37".to_owned()
     ];
 
-    let points = analysis::get_points_by_pattern(db_root, &pattern, &exclude);
+    let points = analysis::get_points_by_pattern(db_root.to_str().unwrap(), &pattern, &exclude);
 
     let hist = Arc::new(
         Mutex::new(PointHistogram::new_step(0.0..3e5, 24.0 * 4.0)));
@@ -37,12 +36,7 @@ async fn main() {
             let filepath = filepath.clone();
             tokio::spawn(async move {
 
-                let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-                let message = read_df_message::<NumassMeta>(&mut point_file)
-                    .await
-                    .unwrap();
-
-                let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
+                let point = load_point(&filepath).await;
 
                 let mut times = point
                     .channels
@@ -56,7 +50,7 @@ async fn main() {
                                 let waveform = process_waveform(frame);
                                 let threshold = 100.0;
 
-                                processing::find_first_peak(&waveform, threshold).map(|x| {
+                                find_first_peak(&waveform, threshold).map(|x| {
                                     let x_offset = x as u64 * 8;
                                     frame.time + x_offset
                                 })

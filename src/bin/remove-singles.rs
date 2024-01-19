@@ -1,14 +1,15 @@
-use std::path::PathBuf;
+use std::collections::BTreeMap;
+
+use analysis::workspace::get_workspace;
+use protobuf::Message;
 
 use dataforge::write_df_message;
+use processing::{
+    numass::protos::rsb_event, storage::{load_meta, load_point}
+};
 
 #[tokio::main]
 async fn main() {
-    use protobuf::Message;
-    use std::collections::BTreeMap;
-
-    use dataforge::read_df_message;
-    use processing::numass::{protos::rsb_event, NumassMeta};
 
     // get files in folder that matches pattern
     let files = glob::glob("/data/numass-server/2023_03/Tritium_1/set_1/p*")
@@ -21,15 +22,12 @@ async fn main() {
     let handles = files.iter().map(|file| {
         let file = file.clone();
         tokio::spawn(async move {
-            let mut point_file = tokio::fs::File::open(&file).await.unwrap();
-            let message = read_df_message::<NumassMeta>(&mut point_file)
-                .await
-                .unwrap();
+
+            let point = load_point(&file).await;
+            let meta = load_meta(&file).await.unwrap();
 
             let mut frames = BTreeMap::new();
-
-            let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-
+            
             point.channels.iter().for_each(|channel| {
                 channel.blocks.iter().for_each(|block| {
                     block.frames.iter().for_each(|frame| {
@@ -74,14 +72,14 @@ async fn main() {
             });
 
 
-            let out_dir: PathBuf = PathBuf::from("/home/chernov/doubles_only");
+            let out_dir = get_workspace();
             
             let mut out_file = tokio::fs::File::create(
                 out_dir.join(file.file_name().unwrap())).await.unwrap();
             
             write_df_message(
                 &mut out_file, 
-                message.meta, 
+                meta, 
                 Some(out_point.write_to_bytes().unwrap())
             ).await.unwrap();
         })

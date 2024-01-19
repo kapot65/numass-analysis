@@ -1,26 +1,26 @@
 use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 
-use analysis::get_points_by_pattern;
+use analysis::{get_points_by_pattern, workspace::get_db_fast_root};
 use plotly::{common::Title, layout::Axis, Layout, Plot};
 use processing::{
-    numass::{protos::rsb_event, NumassMeta},
-    histogram::PointHistogram, extract_events, ProcessParams
+    histogram::PointHistogram, 
+    process::ProcessParams, 
+    storage::process_point,
+    utils::check_neigbors_fast
 };
-use protobuf::Message;
 
-use dataforge::read_df_message;
 use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
     
-    let db_root = "/data-ssd";
+    let db_root = get_db_fast_root();
     let run = "2023_03";
     let pattern = format!("/{run}/Tritium_2/set_1/p118(30s)(HV1=12000)");
     // let pattern = format!("/{run}/Tritium_2/set_*/p*(30s)(HV1=12000)");
     let exclude = [];
 
-    let points = get_points_by_pattern(db_root, &pattern, &exclude).first_key_value().unwrap().1.clone();
+    let points = get_points_by_pattern(db_root.to_str().unwrap(), &pattern, &exclude).first_key_value().unwrap().1.clone();
 
     let histogram_all = Arc::new(Mutex::new(PointHistogram::new_step(-2.0..40.0, 0.1)));
     let histogram = Arc::new(Mutex::new(PointHistogram::new_step(-2.0..40.0, 0.1)));
@@ -39,22 +39,11 @@ async fn main() {
         let counts_all = Arc::clone(&counts_all);
 
         tokio::spawn(async move {
-            let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-            let message = read_df_message::<NumassMeta>(&mut point_file)
-                .await
-                .unwrap();
-
-            let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
-
-            let processing = ProcessParams::default();
-
-            let events = extract_events(
-                &point, &processing
-            );
+            let events = process_point(&filepath, &ProcessParams::default()).await.unwrap().1.unwrap();
             
             let amps = events.iter().filter_map(|(_, amps)| {
                 if  amps.len() == 1 ||
-                    processing::check_neigbors_fast::<(u16, f32)>(amps) 
+                    check_neigbors_fast::<(u16, f32)>(amps) 
                 { None } else {
                     Some(amps.values().map(|(_, amp)| amp).sum::<f32>())
                 }

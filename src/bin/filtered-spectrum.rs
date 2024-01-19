@@ -1,16 +1,17 @@
-use processing::histogram::PointHistogram;
+use std::{collections::BTreeMap, path::PathBuf};
+
+use plotly::{common::Title, layout::Axis, Layout, Plot};
+
+use processing::{
+    histogram::PointHistogram,
+    process::{convert_to_kev, process_waveform, waveform_to_events, Algorithm}, 
+    storage::load_point, 
+    types::ProcessedWaveform
+};
 
 #[tokio::main]
 async fn main() {
-    use std::collections::BTreeMap;
-
-    use plotly::{common::Title, layout::Axis, Layout, Plot};
-    use processing::{
-        process_waveform, ProcessedWaveform,
-        convert_to_kev, waveform_to_events, numass::{protos::rsb_event, NumassMeta}};
-    use protobuf::Message;
-
-    use dataforge::read_df_message;
+    
 
     // let filepath = "/data/numass-server/2022_12/Adiabacity_19_2/set_1/p4(200s)(HV1=15000)";
     // let range = 0.0..5.0;
@@ -24,14 +25,11 @@ async fn main() {
     // let filepath = "/data/numass-server/2022_12/Adiabacity_19_2/set_1/p7(200s)(HV1=12000)";
     // let range = 0.0..8.0;
 
-    let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-    let message = read_df_message::<NumassMeta>(&mut point_file)
-        .await
-        .unwrap();
+    let filepath = PathBuf::from(filepath);
 
     let mut independent: BTreeMap<u64, BTreeMap<u8, ProcessedWaveform>> = BTreeMap::new();
 
-    let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
+    let point = load_point(&filepath).await;
     for channel in &point.channels {
         for block in &channel.blocks {
             for frame in &block.frames {
@@ -41,7 +39,7 @@ async fn main() {
         }
     }
 
-    let algorithm = processing::Algorithm::default();
+    let algorithm = Algorithm::default();
 
     let deltas = independent
         .iter()
@@ -83,7 +81,7 @@ async fn main() {
     let mut plot = Plot::new();
 
     let layout = Layout::new()
-    .title(Title::new(format!("(event within ({range:?} keV) -> next event + time delta < 8 μs) spectrum for {filepath}").as_str()))
+    .title(Title::new(format!("(event within ({range:?} keV) -> next event + time delta < 8 μs) spectrum for {filepath:?}").as_str()))
     .x_axis(Axis::new().title(Title::new("Amplitude, keV")))
     .height(1000);
 

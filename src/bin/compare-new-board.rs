@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use dataforge::read_df_message_sync;
 use plotly::{Plot, Layout};
-use processing::{numass::{NumassMeta, protos::rsb_event}, process_waveform, histogram::PointHistogram};
+use processing::{numass::{NumassMeta, protos::rsb_event}, process::process_waveform, histogram::PointHistogram};
 use protobuf::Message;
 
 use unzip_n::unzip_n;

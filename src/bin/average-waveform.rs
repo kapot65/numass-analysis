@@ -1,15 +1,16 @@
+use std::path::PathBuf;
+
+use plotters::prelude::*;
+
+use processing::{
+    process::{process_waveform, find_first_peak}, 
+    types::ProcessedWaveform,
+    utils::correct_amp,
+    storage::load_point
+};
+
 #[tokio::main]
 async fn main() {
-    use {
-        dataforge::read_df_message,
-        plotters::prelude::*,
-        processing::{
-            process_waveform, ProcessedWaveform,
-            numass::{protos::rsb_event, NumassMeta},
-            correct_amp, find_first_peak
-        },
-        protobuf::Message,
-    };
 
     #[derive(Debug, Clone)]
     struct WaveformNormed {
@@ -28,12 +29,9 @@ async fn main() {
     let threshold = 20.0;
     let step = 10.0;
 
-    let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-    let message = read_df_message::<NumassMeta>(&mut point_file)
-        .await
-        .unwrap();
+    let filepath = PathBuf::from(filepath);
 
-    let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
+    let point = load_point(&filepath).await;
 
     let waveforms_ch6 = point
         .channels
@@ -78,7 +76,7 @@ async fn main() {
                 let amp_max = (idx as f32 + 1.0) * step;
 
                 let caption = format!(
-                    "{filepath} (ch # {channel}) {amp_min} - {amp_max} : {} events",
+                    "{filepath:?} (ch # {channel}) {amp_min} - {amp_max} : {} events",
                     group.len()
                 );
 

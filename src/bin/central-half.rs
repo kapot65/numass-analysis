@@ -1,16 +1,14 @@
+use std::path::PathBuf;
+
 #[tokio::main]
 async fn main() {
     use {
-        dataforge::read_df_message,
-        
         plotly::Plot,
         processing::{
-            numass::{protos::rsb_event, NumassMeta},
-            process_waveform,
-            convert_to_kev, histogram::PointHistogram, waveform_to_events,
-            Algorithm,
+            histogram::PointHistogram,
+            process::{convert_to_kev, process_waveform, waveform_to_events, Algorithm}, 
+            storage::load_point
         },
-        protobuf::Message,
         std::collections::BTreeMap,
     };
 
@@ -18,12 +16,7 @@ async fn main() {
     // let filepath = "/data/numass-server/2022_12/Tritium_7/set_1/p5(30s)(HV1=18200)"; // substract with overflow!
     let filepath = "/data/numass-server/2022_12/Tritium_7/set_1/p98(30s)(HV1=13000)";
 
-    let mut point_file = tokio::fs::File::open(filepath).await.unwrap();
-    let message = read_df_message::<NumassMeta>(&mut point_file)
-        .await
-        .unwrap();
-
-    let point = rsb_event::Point::parse_from_bytes(&message.data.unwrap()[..]).unwrap();
+    let point = load_point(&PathBuf::from(filepath)).await;
 
     let mut crosses = BTreeMap::new();
 
