@@ -132,17 +132,20 @@ async fn main() {
 
     let coeffs = (0..7)
         .map(|ch_id| {
-            let coeffs = &calibration_data[&ch_id];
+            if calibration_data.contains_key(&ch_id) {
+                let coeffs = &calibration_data[&ch_id];
 
-            let (x, y): (Vec<_>, Vec<_>) = coeffs.iter().cloned().unzip();
+                let (x, y): (Vec<_>, Vec<_>) = coeffs.iter().cloned().unzip();
 
-            let (a, b): (f32, f32) = linreg::linear_regression(&y, &x).unwrap();
+                let (a, b): (f32, f32) = linreg::linear_regression(&y, &x).unwrap();
 
-            let trace = plotly::Scatter::new(x, y).mode(plotly::common::Mode::Markers);
+                let trace = plotly::Scatter::new(x, y).mode(plotly::common::Mode::Markers);
 
-            plot.add_trace(trace);
-
-            [a, b]
+                plot.add_trace(trace);
+                [a, b]
+            } else {
+                [1.0, 0.0]
+            }
         })
         .collect::<Vec<_>>();
 
