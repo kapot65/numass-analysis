@@ -51,7 +51,7 @@ async fn main() {
             let mut amps = vec![];
 
             for (ch, waveform) in waveforms {
-                waveform_to_events(waveform, &algorithm).iter().for_each(|(_, amp)| {
+                waveform_to_events(waveform, *ch, &algorithm, None).iter().for_each(|(_, amp)| {
                     amps.push(convert_to_kev(amp, *ch, &algorithm));
                 });
             }
@@ -64,7 +64,7 @@ async fn main() {
                     Some(amps)
                 } else {
                     for (ch, waveform) in waveforms_2 {
-                        waveform_to_events(waveform, &algorithm).iter().for_each(|(_, amp)| {
+                        waveform_to_events(waveform, *ch, &algorithm, None).iter().for_each(|(_, amp)| {
                             amps.push(convert_to_kev(amp, *ch, &algorithm));
                         });
                     }

@@ -34,9 +34,11 @@ async fn calc_count_rates(groups: BTreeMap<u16, Vec<PathBuf>>, process_params: P
                 let events = post_process(events, &post_process_params);
 
                 for (_, amps) in events {
-                    for (ch, (_, amp)) in amps {
-                        if (2.0..20.0).contains(&amp) {
-                            *counts.entry(ch).or_insert(0.0) += 1.0;
+                    for (ch, events) in amps {
+                        for (_, amp) in events {
+                            if (2.0..20.0).contains(&amp) {
+                                *counts.entry(ch).or_insert(0.0) += 1.0;
+                            }
                         }
                     }
                 }

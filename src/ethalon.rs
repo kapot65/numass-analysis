@@ -59,8 +59,10 @@ pub async fn get_ethalon(
                     {
                         let mut hist = hist.lock().await;
                         amps.into_iter().for_each(|(_, block)| {
-                            block.into_iter().for_each(|(ch_num, (_, amp))| {
-                                hist.add(ch_num as u8, amp);
+                            block.into_iter().for_each(|(ch_num, events)| {
+                                for (_, amp) in events {
+                                    hist.add(ch_num as u8, amp);
+                                }
                             });
                         });
                     }

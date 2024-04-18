@@ -65,8 +65,10 @@ async fn main() {
                 {
                     let mut histogram = histogram.lock().await;
                     for (_, events) in events {
-                        for (ch_id, (_, amp)) in events {
-                            histogram.add(ch_id as u8, amp);
+                        for (ch_id, events) in events {
+                            for (_, amp) in events {
+                                histogram.add(ch_id as u8, amp);
+                            }
                         }
                     }
                 }

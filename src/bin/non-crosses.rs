@@ -124,7 +124,7 @@ async fn main() {
             waveforms
                 .iter()
                 .map(|(ch_id, waveform)| {
-                    waveform_to_events(waveform, &algorithm).iter().map(|(_, amp)| {
+                    waveform_to_events(waveform, *ch_id as u8, &algorithm, None).iter().map(|(_, amp)| {
                         convert_to_kev(amp, *ch_id as u8, &algorithm)
                     }).sum::<f32>()
                 })

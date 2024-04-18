@@ -62,7 +62,7 @@ async fn main() {
                         return None;
                     }
 
-                    let events = waveform_to_events(&waveforms[&5], &algorithm);
+                    let events = waveform_to_events(&waveforms[&5], 5, &algorithm, None);
 
                     if events.is_empty() {
                         None

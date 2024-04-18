@@ -165,23 +165,25 @@ async fn main() {
                     process_point(&filepath, &processing).await.unwrap().1.unwrap(),
                     &post_processing);
                 
-                amps.iter().for_each(|(_, frames): (&u64, &std::collections::BTreeMap<usize, (u16, f32)>)| {
-                    frames.iter().for_each(|(ch_num, (_, amp))| {
-                        // hist.add(*ch_num as u8, *amp);
-                        if (out_point.e_curr..e_peak).contains(amp) {
-                            if *ch_num == 5 {
-                                out_point.k += monitor_coeff;
-                                if (out_point.l_curr..e_peak).contains(amp) {
-                                    out_point.l += monitor_coeff;
+                amps.iter().for_each(|(_, frames)| {
+                    frames.iter().for_each(|(ch_num, events)| {
+                        for (_, amp) in events {
+                            // hist.add(*ch_num as u8, *amp);
+                            if (out_point.e_curr..e_peak).contains(amp) {
+                                if *ch_num == 5 {
+                                    out_point.k += monitor_coeff;
+                                    if (out_point.l_curr..e_peak).contains(amp) {
+                                        out_point.l += monitor_coeff;
+                                    }
+                                } else if (out_point.l_curr..e_peak).contains(amp) {
+                                    out_point.m += monitor_coeff;
                                 }
-                            } else if (out_point.l_curr..e_peak).contains(amp) {
-                                out_point.m += monitor_coeff;
-                            }
-                        } else if (e_peak..e_max).contains(amp)  {
-                            out_point.d_sum += monitor_coeff;
-                        
-                            if *ch_num == 5 {
-                                out_point.d += monitor_coeff;
+                            } else if (e_peak..e_max).contains(amp)  {
+                                out_point.d_sum += monitor_coeff;
+                            
+                                if *ch_num == 5 {
+                                    out_point.d += monitor_coeff;
+                                }
                             }
                         }
                     })

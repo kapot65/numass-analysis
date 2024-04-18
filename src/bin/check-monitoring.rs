@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use analysis::{get_points_by_pattern, CorrectionCoeffs, amps::get_amps};
 use chrono::NaiveDateTime;
 use dataforge::read_df_header_and_meta_sync;
+use itertools::any;
 use plotly::{Plot, Layout, common::{Title, Mode}, layout::Axis, Scatter};
 use processing::{numass::{NumassMeta,  Reply}, postprocess::{post_process, PostProcessParams}, process::ProcessParams};
 use tokio::sync::Mutex;
@@ -48,8 +49,8 @@ async fn main() {
             ).await.unwrap(), &PostProcessParams::default());
 
             let count_rate = amps.values().map(|frames| {
-                frames.iter().filter(|(_, (_, amp))| {
-                    (6.0..40.0).contains(amp)
+                frames.iter().filter(|(_, events)| {
+                    any(events.iter(), |(_, amp)| (6.0..40.0).contains(amp)) // TODO: check if it's correct
                 }).collect::<Vec<_>>().len()
             }).sum::<usize>();
 
