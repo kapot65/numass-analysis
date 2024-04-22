@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
+use egui_plot::Legend;
 use processing::{
     process::process_waveform, 
     storage::load_point, 
@@ -208,7 +209,7 @@ struct CrossesViewer {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl eframe::App for CrossesViewer {
-    fn update(&mut self, ctx: &eframe::egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &eframe::egui::Context, _: &mut eframe::Frame) {
 
         ctx.input(|i| {
             if i.key_pressed(eframe::egui::Key::ArrowRight) &&  self.current < self.filtered.len() - 1
@@ -221,7 +222,11 @@ impl eframe::App for CrossesViewer {
         });
 
         eframe::egui::CentralPanel::default().show(ctx, |ui| {
-            ui.style_mut().spacing.slider_width = frame.info().window_info.size.x - 150.0;
+
+            let mut x = 0.0;
+            ctx.input(|i| {x = i.viewport().inner_rect.unwrap().size().x});
+
+            ui.style_mut().spacing.slider_width = x - 150.0;
 
             ui.horizontal(|ui| {
                 ui.label("Enabled: ");
@@ -262,13 +267,9 @@ impl eframe::App for CrossesViewer {
                 }
             });
 
-            eframe::egui::plot::Plot::new("waveforms")
-                .legend(eframe::egui::plot::Legend {
-                    text_style: eframe::egui::TextStyle::Body,
-                    background_alpha: 1.0,
-                    position: eframe::egui::plot::Corner::RightTop,
-                })
-                .x_axis_formatter(|value, _| format!("{:.3} μs", (value * 8.0) / 1000.0))
+            egui_plot::Plot::new("waveforms")
+                .legend(Legend::default())
+                // .x_axis_formatter(|_, value, _| format!("{:.3} μs", (value * 8.0) / 1000.0)) // TODO: fix
                 .show(ui, |plot_ui| {
                     if !self.filtered.is_empty() {
                         let (_, waveform) = &self.filtered[self.current];
