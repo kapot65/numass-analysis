@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 
 use processing::{
     histogram::PointHistogram, 
-    process::{convert_to_kev, process_waveform, waveform_to_events, Algorithm}, 
+    process::{convert_to_kev, process_waveform, waveform_to_events, Algorithm, StaticProcessParams}, 
     storage::load_point, 
     utils::check_neigbors_fast
 };
@@ -124,7 +124,11 @@ async fn main() {
             waveforms
                 .iter()
                 .map(|(ch_id, waveform)| {
-                    waveform_to_events(waveform, *ch_id as u8, &algorithm, None).iter().map(|(_, amp)| {
+                    waveform_to_events(
+                        waveform, *ch_id as u8, 
+                        &algorithm, &StaticProcessParams { baseline: None },
+                        None
+                    ).iter().map(|(_, amp)| {
                         convert_to_kev(amp, *ch_id as u8, &algorithm)
                     }).sum::<f32>()
                 })

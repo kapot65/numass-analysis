@@ -6,7 +6,7 @@ use plotly::{common::Title, layout::Axis, Layout, Plot};
 use analysis::{get_points_by_pattern, workspace::get_db_fast_root};
 use processing::{
     histogram::PointHistogram, 
-    process::{Algorithm, convert_to_kev, process_waveform, waveform_to_events}, 
+    process::{convert_to_kev, process_waveform, waveform_to_events, Algorithm, StaticProcessParams}, 
     storage::load_point,
     types::ProcessedWaveform
 };
@@ -62,7 +62,11 @@ async fn main() {
                         return None;
                     }
 
-                    let events = waveform_to_events(&waveforms[&5], 5, &algorithm, None);
+                    let events = waveform_to_events(
+                        &waveforms[&5], 5, 
+                        &algorithm, &StaticProcessParams { baseline: None },
+                         None
+                    );
 
                     if events.is_empty() {
                         None

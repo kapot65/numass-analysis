@@ -1,84 +1,50 @@
 use std::{collections::HashMap, sync::Arc, path::PathBuf};
 
-use analysis::amps::get_amps;
-use processing::{histogram::HistogramParams, process::{Algorithm, ProcessParams}, utils::events_to_histogram};
+use processing::{histogram::HistogramParams, process::{extract_events, ProcessParams, TRAPEZOID_DEFAULT}, storage::load_point, utils::events_to_histogram};
 use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    // let algorithm = Algorithm::Max;
-    // let algorithm = Algorithm::Likhovid { left: 15, right: 36 };
 
-    // let points = [
-    //     (
-    //         6.0,
-    //         "/data/numass-server/2022_12/Electrode_4/set_1/p2(200s)(HV1=6000)",
-    //     ),
-    //     (
-    //         12.0,
-    //         "/data/numass-server/2022_12/Electrode_4/set_1/p5(200s)(HV1=12000)",
-    //     ),
-    //     (
-    //         14.0,
-    //         "/data/numass-server/2022_12/Electrode_4/set_1/p6(200s)(HV1=14000)",
-    //     ),
-    //     (
-    //         16.0,
-    //         "/data/numass-server/2022_12/Electrode_4/set_1/p7(200s)(HV1=16000)",
-    //     ),
-    //     (
-    //         18.0,
-    //         "/data/numass-server/2022_12/Electrode_4/set_1/p8(200s)(HV1=18000)",
-    //     ),
-    //     (
-    //         20.0,
-    //         "/data/numass-server/2022_12/Electrode_4/set_1/p9(200s)(HV1=20000)",
-    //     ),
-    // ];
-
-    let algorithm = Algorithm::FirstPeak { threshold: 10, left: 8 };
+    let algorithm = TRAPEZOID_DEFAULT;
 
     let points = [
         (
-            3.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p0(200s)(HV1=3000)",
-        ),
-        (
             4.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p1(200s)(HV1=4000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p1(20s)(HV1=4000)",
         ),
         (
             6.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p2(200s)(HV1=6000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p2(20s)(HV1=6000)",
         ),
         (
             8.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p3(200s)(HV1=8000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p3(20s)(HV1=8000)",
         ),
         (
             10.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p4(200s)(HV1=10000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p4(20s)(HV1=10000)",
         ),
         (
             12.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p5(200s)(HV1=12000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p5(20s)(HV1=12000)",
         ),
         (
             14.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p6(200s)(HV1=14000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p6(20s)(HV1=14000)",
         ),
         (
             16.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p7(200s)(HV1=16000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p7(20s)(HV1=16000)",
         ),
         (
             18.0,
-            "/data/numass-server/deconvolved/2023_03/Electrode_2/set_1/p8(200s)(HV1=18000)",
+            "/data-nvme/2024_03/Electrode_3/set_1/p8(20s)(HV1=18000)",
         ),
-        // (
-        //     20.0,
-        //     "/data/numass-server/2022_12/Electrode_2/set_1/p9(200s)(HV1=20000)",
-        // ),
+        (
+            20.0,
+            "/data-nvme/2024_03/Electrode_3/set_1/p9(20s)(HV1=20000)",
+        ),
     ];
 
     let calibration_data: Arc<Mutex<HashMap<u8, Vec<_>>>> = Arc::new(Mutex::new(HashMap::new()));
@@ -91,12 +57,13 @@ async fn main() {
                 let calibration_data = Arc::clone(&calibration_data);
                 let algorithm = algorithm.clone();
                 tokio::spawn(async move {
-                    let histogram  = events_to_histogram(get_amps(
-                        &PathBuf::from(filepath), 
-                        &ProcessParams {
-                            algorithm,
-                            convert_to_kev: false,
-                    }).await.unwrap(), HistogramParams { range: 0.0..400.0, bins: 400 });
+
+                    let point = load_point(&PathBuf::from(filepath)).await;
+                    let events = extract_events(&point, &ProcessParams { algorithm, convert_to_kev: false });
+
+                    let histogram  = events_to_histogram(
+                        events,
+                        HistogramParams { range: 0.0..400.0, bins: 400 });
 
                     for (ch_id, y) in histogram.channels {
                         let (x, _) = y
@@ -105,7 +72,6 @@ async fn main() {
                             .enumerate()
                             .max_by_key(|(_, amp)| **amp as i64 * 1000)
                             .unwrap();
-
                         {
                             let mut lock = calibration_data.lock().await;
                             let entry = lock.entry(ch_id).or_default();

@@ -1,31 +1,17 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 
-use analysis::workspace::get_db_fast_root;
 use plotly::{common::Title, layout::Axis, Layout, Plot};
 
 use processing::{
-    histogram::PointHistogram, process::{find_first_peak, process_waveform}, storage::load_point
+    histogram::PointHistogram, process::{extract_waveforms, waveform_to_events, StaticProcessParams, TRAPEZOID_DEFAULT}, storage::load_point
 };
 use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
-    
-    let db_root = get_db_fast_root();
-    let run = "2023_03";
 
-    // let filepath = "/data/numass-server/2023_03/Tritium_1/set_1/p118(30s)(HV1=12000)";
-    // let filepath = "/data/2022_12/Tritium_7/set_1/p120(30s)(HV1=12000)";
-    // let filepath = "/data/2022_12/Tritium_7/set_1/p0(30s)(HV1=14000)";
-    // let filepath = "/data/2022_12/Tritium_7/set_1/p6(30s)(HV1=18100)";
-    let pattern = format!("/{run}/Tritium_2/set_1/p*(HV1=12000)");
-    // let pattern = format!("/{run}/Tritium_3/set_*/p*(HV1=15000)");
-    let exclude: Vec<String> = vec![
-        "Tritium_3/set_25_short".to_owned(),
-        "Tritium_2/set_29/p37".to_owned()
-    ];
-
-    let points = analysis::get_points_by_pattern(db_root.to_str().unwrap(), &pattern, &exclude);
+    let mut points = BTreeMap::new();
+    points.insert(12000u16, vec![PathBuf::from("/data-2/numass-server/2024_03/Tritium_7/set_1/p45(30s)(HV1=14000)")]);
 
     let hist = Arc::new(
         Mutex::new(PointHistogram::new_step(0.0..3e5, 24.0 * 4.0)));
@@ -38,42 +24,41 @@ async fn main() {
 
                 let point = load_point(&filepath).await;
 
-                let mut times = point
-                    .channels
-                    .iter()
-                    .flat_map(|channel| {
-                        channel.blocks.iter().flat_map(|block| {
-                            block.frames.iter().filter_map(|frame| {
+                let frames: BTreeMap<u64, BTreeMap<usize, processing::types::ProcessedWaveform>> = extract_waveforms(&point);
 
-                                // Some(frame.time)
+                let times = frames.into_iter().flat_map(|(time, frames)| {
+                    
+                    let mut frame_times = frames.into_iter().flat_map(|(channel, waveform)| {
 
-                                let waveform = process_waveform(frame);
-                                let threshold = 100.0;
+                        // if channel == 1 {
+                        //     return vec![];
+                        // }
 
-                                find_first_peak(&waveform, threshold).map(|x| {
-                                    let x_offset = x as u64 * 8;
-                                    frame.time + x_offset
-                                })
-                            })
-                        })
-                    })
-                    .collect::<Vec<_>>();
-                times.sort();
+                        let events = waveform_to_events(
+                            &waveform, channel as u8, 
+                            &TRAPEZOID_DEFAULT, &StaticProcessParams { baseline: None },
+                             None
+                        );
+                        events.into_iter().map(|(ev_time, _)| time + ev_time as u64).collect::<Vec<_>>()
+                    }).collect::<Vec<_>>();
+
+                    frame_times.sort();
+                    frame_times
+
+                }).collect::<Vec<_>>();
 
                 let deltas = {
                     let mut deltas = vec![0; times.len() - 1];
                     for idx in 1..times.len() {
                         deltas[idx - 1] = times[idx] - times[idx - 1]
                     }
-                    let mut deltas = deltas
+                    let deltas = deltas
                         .iter()
                         .filter(|delta| **delta != 0)
                         .copied()
                         .collect::<Vec<_>>();
-                    deltas.sort();
                     deltas
                 };
-
                 
                 hist.lock().await.add_batch(0, 
                     deltas.iter().map(|x| *x as f32).collect::<Vec<_>>()
@@ -85,13 +70,20 @@ async fn main() {
     for handle in handles {
         handle.await.unwrap();
     }
+    
 
     {
         let hist = hist.lock().await;
+
+        println!("delta\tcounts");
+        for (idx, x) in hist.x.iter().enumerate() {
+            println!("{x}\t{}", hist.channels[&0][idx]);
+        }
+
         let mut plot = Plot::new();
 
         let layout = Layout::new()
-            .title(Title::new(format!("Time Deltas for {pattern}").as_str()))
+            .title(Title::new("Time Deltas for /data-2/numass-server/2024_03/Tritium_7/set_1/p45(30s)(HV1=14000)"))
             .x_axis(Axis::new().title(Title::new("time delta, ns")))
             .y_axis(Axis::new().type_(plotly::layout::AxisType::Log))
             .height(1000);

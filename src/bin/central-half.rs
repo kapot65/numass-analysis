@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use processing::process::StaticProcessParams;
+
 #[tokio::main]
 async fn main() {
     use {
@@ -27,7 +29,12 @@ async fn main() {
             for frame in &block.frames {
                 let entry: &mut Vec<_> = crosses.entry(frame.time).or_default();
                 let waveform = process_waveform(frame);
-                waveform_to_events(&waveform,  channel.id as u8, &algorithm, None).iter().for_each(|(_, amp)| {
+                waveform_to_events(
+                    &waveform,  
+                    channel.id as u8, 
+                    &algorithm,
+                    &StaticProcessParams { baseline: None }, 
+                    None).iter().for_each(|(_, amp)| {
                     entry.push((channel.id as u8, convert_to_kev(amp, channel.id as u8, &algorithm)));
                 });
             }
