@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 async fn main() {
 
     let mut points = BTreeMap::new();
-    points.insert(12000u16, vec![PathBuf::from("/data-2/numass-server/2024_03/Tritium_7/set_1/p45(30s)(HV1=14000)")]);
+    points.insert(12000u16, vec![PathBuf::from("/data-nvme/2024_03/Tritium_2/set_1/p149(30s)(HV1=12100)")]);
 
     let hist = Arc::new(
         Mutex::new(PointHistogram::new_step(0.0..3e5, 24.0 * 4.0)));

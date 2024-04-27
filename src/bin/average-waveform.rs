@@ -3,10 +3,7 @@ use std::path::PathBuf;
 use plotters::prelude::*;
 
 use processing::{
-    process::{process_waveform, find_first_peak}, 
-    types::ProcessedWaveform,
-    utils::correct_amp,
-    storage::load_point
+    process::find_first_peak, storage::load_point, types::RawWaveform, utils::correct_amp
 };
 
 #[tokio::main]
@@ -14,7 +11,7 @@ async fn main() {
 
     #[derive(Debug, Clone)]
     struct WaveformNormed {
-        waveform: ProcessedWaveform,
+        waveform: RawWaveform,
         bin: usize,
         x: f32,
         y: f32,
@@ -26,7 +23,7 @@ async fn main() {
     // let filepath = "/data/2022_12/Tritium_5/set_8/p121(30s)(HV1=14000)";
     let channel = 6;
 
-    let threshold = 20.0;
+    let threshold = 20i16;
     let step = 10.0;
 
     let filepath = PathBuf::from(filepath);
@@ -42,16 +39,16 @@ async fn main() {
         .frames
         .iter()
         .filter_map(|frame| {
-            let waveform = process_waveform(frame);
+            let waveform = RawWaveform::from(frame);
 
-            let bin = find_first_peak(&waveform, threshold);
+            let bin = find_first_peak(waveform.0.as_slice(), threshold);
             bin.map(|bin| {
                 // mirror neighbors if peak is on the edge
                 let left = if bin == 0 { waveform.0[bin + 1] } else { waveform.0[bin - 1] };
                 let center = waveform.0[bin];
                 let right = if bin == waveform.0.len() - 1 { left } else { waveform.0[bin + 1] };
     
-                let (x, y) = correct_amp(left, center, right);
+                let (x, y) = correct_amp(left as f32, center as f32, right as f32);
                 WaveformNormed { waveform, bin, x, y }
             })
         });
@@ -114,7 +111,7 @@ async fn main() {
 
                     chart
                         .draw_series(LineSeries::new(
-                            vals.map(|(x, y)| (*x, *y)).collect::<Vec<_>>(),
+                            vals.map(|(x, y)| (*x, *y as f32)).collect::<Vec<_>>(),
                             RED.to_rgba().mix(0.02),
                         ))
                         .unwrap();

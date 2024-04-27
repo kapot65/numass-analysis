@@ -102,8 +102,8 @@ async fn main() {
             for (_, frames) in waveforms {
                 for (channel, waveform) in frames {
 
-                    let filtered = waveform.0.windows(left + center + right).map(|window| {
-                        (window[left+center..].iter().sum::<f32>() - window[..left].iter().sum::<f32>()) / (left + right) as f32
+                    let filtered = waveform.windows(left + center + right).map(|window| {
+                        (window[left+center..].iter().sum::<i16>() - window[..left].iter().sum::<i16>()) as f32 / (left + right) as f32
                     }).collect::<Vec<_>>();
 
                     hist.add_batch(channel, filtered);
