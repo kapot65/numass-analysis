@@ -41,7 +41,7 @@ struct SetParams {
 pub struct Coeffs {
     pub a: f32,
     pub b: f32,
-    // pub c: f32,
+    pub c: f32,
 }
 
 pub struct CorrectionCoeffs {
@@ -63,6 +63,26 @@ impl CorrectionCoeffs {
         self.coeffs.get(fill)?.get(set).map(|params| &params.corr_coef)
     }
 
+    pub fn get_from_meta_by_index(&self, filepath: &Path, meta: &NumassMeta) -> f32 {
+
+        let (fill, set) = {
+            let set_folder = filepath.parent().unwrap();
+            (
+                set_folder.parent().unwrap().file_name().unwrap().to_str().unwrap(), 
+                set_folder.file_name().unwrap().to_str().unwrap()
+            )
+        };
+        
+        let Coeffs {a, b, c} = self.get(fill, set).unwrap();
+
+        let x = {
+            let filename = filepath.file_name().unwrap().to_str().unwrap();
+            filename[1..filename.find('(').unwrap()].parse::<i32>().unwrap() as f32
+        };
+
+        a * x.powf(2.0) + b * x + c
+    }
+
     pub fn get_from_meta(&self, filepath: &Path, meta: &NumassMeta) -> f32 {
 
         let (fill, set) = {
@@ -72,28 +92,29 @@ impl CorrectionCoeffs {
                 set_folder.file_name().unwrap().to_str().unwrap()
             )
         };
+        
 
-        let Coeffs {a, b} = self.get(fill, set).unwrap();
-
-        if let NumassMeta::Reply(Reply::AcquirePoint { start_time, ..
-        }) = meta {
-            let secs = start_time.timestamp() + (3600 * 5);
-            let x = (secs % 1_000_000) as f32;
-            1.0 / (a * x + b)
-        } else {
-            panic!("wrong message type")
-        }
-
-
-        // let Coeffs {a, b, c} = self.get(fill, set).unwrap();
+        // let Coeffs {a, b} = self.get(fill, set).unwrap();
 
         // if let NumassMeta::Reply(Reply::AcquirePoint { start_time, ..
         // }) = meta {
-        //     let secs = start_time.timestamp() - (3600 * 3);
-        //     let x= (secs % 1_000_000) as f32;
-        //     1.0 / (a * x.powf(2.0) + b * x + c)
+        //     let secs = start_time.timestamp() + (3600 * 5);
+        //     let x = (secs % 1_000_000) as f32;
+        //     1.0 / (a * x + b)
         // } else {
         //     panic!("wrong message type")
         // }
+
+
+        let Coeffs {a, b, c} = self.get(fill, set).unwrap();
+
+        if let NumassMeta::Reply(Reply::AcquirePoint { start_time, ..
+        }) = meta {
+            let secs = start_time.timestamp() - (3600 * 3);
+            let x= (secs % 1_000_000) as f32;
+            1.0 / (a * x.powf(2.0) + b * x + c)
+        } else {
+            panic!("wrong message type")
+        }
     }
 }
