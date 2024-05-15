@@ -32,7 +32,7 @@ async fn main() {
                         &frame, 
                         &TRAPEZOID_DEFAULT, 
                         &StaticProcessParams { baseline: None }, 
-                        None
+                        &mut None
                     ).into_iter().filter_map(|(ev_time, event)| {
                         if let FrameEvent::Event { .. } = event {
                             Some(time + ev_time as u64)
