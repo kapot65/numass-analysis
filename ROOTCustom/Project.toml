@@ -1,0 +1,10 @@
+name = "ROOTCustom"
+uuid = "c817cc4f-dcf1-4411-8e38-a78d13b869fb"
+authors = ["chernov <kapot65@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+ROOT = "1706fdcc-8426-44f1-a283-5be479e9517c"
+
+[compat]
+ROOT = "0.3.2"

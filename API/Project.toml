@@ -1,0 +1,16 @@
+name = "API"
+uuid = "29397c1a-96e2-49b0-8275-200825983479"
+authors = ["chernov <kapot65@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+MsgPack = "99f44e22-a591-53d1-9472-aa23ef4bd671"
+
+[compat]
+Dates = "1.11.0"
+HTTP = "1.10.15"
+JSON = "0.21.4"
+MsgPack = "1.2.1"

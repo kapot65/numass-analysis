@@ -1,0 +1,13 @@
+[deps]
+API = "29397c1a-96e2-49b0-8275-200825983479"
+Cthulhu = "f68482b8-f384-11e8-15f7-abe071a5a75f"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+GLM = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
+MsgPack = "99f44e22-a591-53d1-9472-aa23ef4bd671"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
+ROOT = "1706fdcc-8426-44f1-a283-5be479e9517c"
+ROOTCustom = "c817cc4f-dcf1-4411-8e38-a78d13b869fb"
